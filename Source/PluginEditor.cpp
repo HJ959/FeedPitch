@@ -18,22 +18,18 @@ FeedPitchAudioProcessorEditor::FeedPitchAudioProcessorEditor (FeedPitchAudioProc
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
     setSize (400, 300);
-
-    pitchSlider.setRange (0.5, 2.0, 0.02);
-    pitchSlider.setSliderStyle (Slider::Rotary);
-    pitchSlider.setTextBoxStyle (Slider::TextBoxLeft, false, 80, 20);
-    pitchSlider.setValue(processor.pitchShift);
-    addAndMakeVisible(&pitchSlider);
-    // add the listener to the slider
-    pitchSlider.addListener (this);
     
-    volumeSlider.setRange (0.0, 1.0, 0.01);
-    volumeSlider.setSliderStyle (Slider::Rotary);
-    volumeSlider.setTextBoxStyle (Slider::TextBoxLeft, false, 80, 20);
-    // Keeps the slider from reseting when the plugin window is opened
+    pitchSlider.setSliderStyle (juce::Slider::LinearBarVertical);
+    pitchSlider.setRange (0.01f, 2.0f, 0.01f);
+    pitchSlider.setValue(processor.pitchShift);
+    pitchSlider.addListener (this);
+    addAndMakeVisible(&pitchSlider);
+    
+    volumeSlider.setSliderStyle (juce::Slider::LinearBarVertical);
+    volumeSlider.setRange (-60.0f, 0.0f, 0.01f);
     volumeSlider.setValue(processor.rawVolume);
-    addAndMakeVisible(&volumeSlider);
     volumeSlider.addListener (this);
+    addAndMakeVisible(&volumeSlider);
 }
 
 FeedPitchAudioProcessorEditor::~FeedPitchAudioProcessorEditor()
@@ -41,20 +37,20 @@ FeedPitchAudioProcessorEditor::~FeedPitchAudioProcessorEditor()
 }
 
 //==============================================================================
-void FeedPitchAudioProcessorEditor::paint (Graphics& g)
+void FeedPitchAudioProcessorEditor::paint (juce::Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll (getLookAndFeel().findColour (ResizableWindow::backgroundColourId));
+    //g.fillAll (getLookAndFeel().findColour (ResizableWindow::backgroundColourId));
     // fill the whole window white
-    g.fillAll (Colours::white);
+    g.fillAll (juce::Colours::white);
     
     // set the current drawing colour to black
-    g.setColour (Colours::black);
+    g.setColour (juce::Colours::black);
     
     // set the font size and draw text to the screen
     g.setFont (15.0f);
 }
-
+//==============================================================================
 void FeedPitchAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
@@ -69,8 +65,8 @@ void FeedPitchAudioProcessorEditor::resized()
 
     
 }
-
-void FeedPitchAudioProcessorEditor::sliderValueChanged(Slider *slider)
+//==============================================================================
+void FeedPitchAudioProcessorEditor::sliderValueChanged(juce::Slider *slider)
 {
     if (slider == &pitchSlider)
     {
@@ -81,4 +77,4 @@ void FeedPitchAudioProcessorEditor::sliderValueChanged(Slider *slider)
         processor.rawVolume = volumeSlider.getValue();
     }
 }
-
+//==============================================================================

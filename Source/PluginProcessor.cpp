@@ -17,9 +17,9 @@ FeedPitchAudioProcessor::FeedPitchAudioProcessor()
      : AudioProcessor (BusesProperties()
                      #if ! JucePlugin_IsMidiEffect
                       #if ! JucePlugin_IsSynth
-                       .withInput  ("Input",  AudioChannelSet::stereo(), true)
+                       .withInput  ("Input",  juce::AudioChannelSet::stereo(), true)
                       #endif
-                       .withOutput ("Output", AudioChannelSet::stereo(), true)
+                       .withOutput ("Output", juce::AudioChannelSet::stereo(), true)
                      #endif
                        )
 #endif
@@ -31,7 +31,7 @@ FeedPitchAudioProcessor::~FeedPitchAudioProcessor()
 }
 
 //==============================================================================
-const String FeedPitchAudioProcessor::getName() const
+const juce::String FeedPitchAudioProcessor::getName() const
 {
     return JucePlugin_Name;
 }
@@ -83,12 +83,12 @@ void FeedPitchAudioProcessor::setCurrentProgram (int index)
 {
 }
 
-const String FeedPitchAudioProcessor::getProgramName (int index)
+const juce::String FeedPitchAudioProcessor::getProgramName (int index)
 {
     return {};
 }
 
-void FeedPitchAudioProcessor::changeProgramName (int index, const String& newName)
+void FeedPitchAudioProcessor::changeProgramName (int index, const juce::String& newName)
 {
 }
 
@@ -114,8 +114,8 @@ bool FeedPitchAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts
   #else
     // This is the place where you check if the layout is supported.
     // In this template code we only support mono or stereo.
-    if (layouts.getMainOutputChannelSet() != AudioChannelSet::mono()
-     && layouts.getMainOutputChannelSet() != AudioChannelSet::stereo())
+    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::mono()
+     && layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
         return false;
 
     // This checks if the input layout matches the output layout
@@ -129,12 +129,12 @@ bool FeedPitchAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts
 }
 #endif
 
-void FeedPitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuffer& midiMessages)
+void FeedPitchAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    ScopedNoDenormals noDenormals;
+    juce::ScopedNoDenormals noDenormals;
     auto totalNumInputChannels  = getTotalNumInputChannels();
-    SmoothedValue<float>pitchSmoother(pitchShiftPrev);
-    SmoothedValue<float>volumeSmoother(pitchShiftPrev);
+    juce::SmoothedValue<float>pitchSmoother(pitchShiftPrev);
+    juce::SmoothedValue<float>volumeSmoother(pitchShiftPrev);
     
     sampleRate = AudioProcessor::getSampleRate();
     // in case the sample rate isn't known set to default value
@@ -148,11 +148,11 @@ void FeedPitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuff
     volumeSmoother.setTargetValue(rawVolume);
     
     /* set up some handy variables */
-    fftFrameSize2 = FFT_FRAME_SIZE/2;
-    stepSize = FFT_FRAME_SIZE/OSAMP;
-    freqPerBin = sampleRate/(double)FFT_FRAME_SIZE;
-    expct = 2.*M_PI*(double)stepSize/(double)FFT_FRAME_SIZE;
-    inFifoLatency = FFT_FRAME_SIZE-stepSize;
+    fftFrameSize2 = fftFrameSize/2;
+    stepSize = fftFrameSize/osamp;
+    freqPerBin = sampleRate/(double)fftFrameSize;
+    expct = 2.*M_PI*(double)stepSize/(double)fftFrameSize;
+    inFifoLatency = fftFrameSize-stepSize;
     if (gRover == false) gRover = inFifoLatency;
     
     /* initialize our static arrays */
@@ -169,25 +169,24 @@ void FeedPitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuff
     }
     
     // for every channel in the available channels list
-    for (int channel = 0; channel < totalNumInputChannels; ++channel)
-    {
+    for (int channel = 0; channel < totalNumInputChannels; ++channel) {
+        auto* outdata = buffer.getWritePointer(channel);
+        
         /* main processing loop */
-        for (i = 0; i < buffer.getNumSamples(); i++){
-            // get the channel data from the buffer of the channel
-            auto* outdata = buffer.getWritePointer(channel);
-            auto* indata = buffer.getReadPointer(channel);
+        for (i = 0; i < buffer.getNumSamples(); i++) {
             /* As long as we have not yet collected enough data just read in */
-            gInFIFO[gRover] = indata[i] * rawVolume;
-
-            outdata[i] = gOutFIFO[gRover-inFifoLatency];
+            gInFIFO[gRover] = outdata[i] * 0.8f;
+            
+            // control the volume of the plug in
+            outdata[i] = gOutFIFO[gRover-inFifoLatency] * juce::Decibels::decibelsToGain(rawVolume);
             gRover++;
             
             /* now we have enough data for processing */
-            if (gRover >= FFT_FRAME_SIZE) {
+            if (gRover >= fftFrameSize) {
                 gRover = inFifoLatency;
                 
                 /* do windowing and re,im interleave */
-                for (k = 0; k < FFT_FRAME_SIZE;k++) {
+                for (k = 0; k < fftFrameSize;k++) {
                     window = -.5*cos(2.*M_PI*(double)k/(double)fftFrameSize)+.5;
                     gFFTworksp[2*k] = gInFIFO[k] * window;
                     gFFTworksp[2*k+1] = 0.;
@@ -222,7 +221,7 @@ void FeedPitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuff
                     tmp -= M_PI*(double)qpd;
                     
                     /* get deviation from bin frequency from the +/- Pi interval */
-                    tmp = OSAMP*tmp/(2.*M_PI);
+                    tmp = osamp*tmp/(2.*M_PI);
                     
                     /* compute the k-th partials' true frequency */
                     tmp = (double)k*freqPerBin + tmp*freqPerBin;
@@ -260,7 +259,7 @@ void FeedPitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuff
                     tmp /= freqPerBin;
                     
                     /* take osamp into account */
-                    tmp = 2.*M_PI*tmp/OSAMP;
+                    tmp = 2.*M_PI*tmp/osamp;
                     
                     /* add the overlap phase advance back in */
                     tmp += (double)k*expct;
@@ -283,7 +282,7 @@ void FeedPitchAudioProcessor::processBlock (AudioBuffer<float>& buffer, MidiBuff
                 /* do windowing and add to output accumulator */
                 for(k=0; k < fftFrameSize; k++) {
                     window = -.5*cos(2.*M_PI*(double)k/(double)fftFrameSize)+.5;
-                    gOutputAccum[k] += 2.*window*gFFTworksp[2*k]/(fftFrameSize2*OSAMP);
+                    gOutputAccum[k] += 2.*window*gFFTworksp[2*k]/(fftFrameSize2*osamp);
                 }
                 for (k = 0; k < stepSize; k++) gOutFIFO[k] = gOutputAccum[k];
                 
@@ -305,13 +304,13 @@ bool FeedPitchAudioProcessor::hasEditor() const
     return true; // (change this to false if you choose to not supply an editor)
 }
 
-AudioProcessorEditor* FeedPitchAudioProcessor::createEditor()
+juce::AudioProcessorEditor* FeedPitchAudioProcessor::createEditor()
 {
     return new FeedPitchAudioProcessorEditor (*this);
 }
 
 //==============================================================================
-void FeedPitchAudioProcessor::getStateInformation (MemoryBlock& destData)
+void FeedPitchAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     // You should use this method to store your parameters in the memory block.
     // You could do that either as raw data, or use the XML or ValueTree classes
@@ -326,7 +325,7 @@ void FeedPitchAudioProcessor::setStateInformation (const void* data, int sizeInB
 
 //==============================================================================
 // This creates new instances of the plugin..
-AudioProcessor* JUCE_CALLTYPE createPluginFilter()
+juce::AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
     return new FeedPitchAudioProcessor();
 }
@@ -386,41 +385,4 @@ void FeedPitchAudioProcessor::smbFft(float *fftBuffer, long fftFrameSize, long s
         }
     }
 }
-
-
-// -----------------------------------------------------------------------------------------------------------------
-
-/*
- 
- 12/12/02, smb
- 
- PLEASE NOTE:
- 
- There have been some reports on domain errors when the atan2() function was used
- as in the above code. Usually, a domain error should not interrupt the program flow
- (maybe except in Debug mode) but rather be handled "silently" and a global variable
- should be set according to this error. However, on some occasions people ran into
- this kind of scenario, so a replacement atan2() function is provided here.
- 
- If you are experiencing domain errors and your program stops, simply replace all
- instances of atan2() with calls to the smbAtan2() function below.
- 
- */
-
-
-double smbAtan2(double x, double y)
-{
-    double signx;
-    if (x > 0.) signx = 1.;
-    else signx = -1.;
-    
-    if (x == 0.) return 0.;
-    if (y == 0.) return signx * M_PI / 2.;
-    
-    return atan2(x, y);
-}
-
-
-// -----------------------------------------------------------------------------------------------------------------
-// -----------------------------------------------------------------------------------------------------------------
 // -----------------------------------------------------------------------------------------------------------------

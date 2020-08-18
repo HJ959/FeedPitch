@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="cVHL5I" name="FeedPitch" projectType="audioplug" pluginFormats="buildAU,buildVST3"
-              pluginManufacturer="Boulderhead" displaySplashScreen="1" jucerFormatVersion="1">
+              pluginManufacturer="Boulderhead" displaySplashScreen="1" jucerFormatVersion="1"
+              addUsingNamespaceToJuceHeader="0">
   <MAINGROUP id="M4UwxS" name="FeedPitch">
     <GROUP id="{C6FBC3E8-8473-C25F-6DDD-6F051EA4D1A6}" name="Source">
       <FILE id="mwRFpa" name="PluginProcessor.cpp" compile="1" resource="0"
