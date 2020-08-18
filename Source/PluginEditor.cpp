@@ -19,12 +19,21 @@ FeedPitchAudioProcessorEditor::FeedPitchAudioProcessorEditor (FeedPitchAudioProc
     // editor's size to whatever you need it to be.
     setSize (400, 300);
 
-    pitchSlider.setSliderStyle(Slider::SliderStyle::LinearHorizontal);
-    pitchSlider.setRange(0.0, 2.0);
-    pitchSlider.setValue(1.0);
-    pitchSlider.setTextBoxStyle(Slider::TextBoxBelow, true, 100, 25);
-    pitchSlider.addListener(this);
-    addAndMakeVisible(pitchSlider);
+    pitchSlider.setRange (0.5, 2.0, 0.02);
+    pitchSlider.setSliderStyle (Slider::Rotary);
+    pitchSlider.setTextBoxStyle (Slider::TextBoxLeft, false, 80, 20);
+    pitchSlider.setValue(processor.pitchShift);
+    addAndMakeVisible(&pitchSlider);
+    // add the listener to the slider
+    pitchSlider.addListener (this);
+    
+    volumeSlider.setRange (0.0, 1.0, 0.01);
+    volumeSlider.setSliderStyle (Slider::Rotary);
+    volumeSlider.setTextBoxStyle (Slider::TextBoxLeft, false, 80, 20);
+    // Keeps the slider from reseting when the plugin window is opened
+    volumeSlider.setValue(processor.rawVolume);
+    addAndMakeVisible(&volumeSlider);
+    volumeSlider.addListener (this);
 }
 
 FeedPitchAudioProcessorEditor::~FeedPitchAudioProcessorEditor()
@@ -36,16 +45,28 @@ void FeedPitchAudioProcessorEditor::paint (Graphics& g)
 {
     // (Our component is opaque, so we must completely fill the background with a solid colour)
     g.fillAll (getLookAndFeel().findColour (ResizableWindow::backgroundColourId));
+    // fill the whole window white
+    g.fillAll (Colours::white);
     
+    // set the current drawing colour to black
+    g.setColour (Colours::black);
     
-
+    // set the font size and draw text to the screen
+    g.setFont (15.0f);
 }
 
 void FeedPitchAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
-    pitchSlider.setBounds(getLocalBounds());
+    //pitchSlider.setBounds(getLocalBounds());
+    auto area = getLocalBounds();
+    
+    
+    auto contentItemHeight = 200;
+    pitchSlider.setBounds(area.removeFromTop (contentItemHeight)); // [1]
+    volumeSlider.setBounds(area.removeFromTop (contentItemHeight));
+
     
 }
 
@@ -54,6 +75,10 @@ void FeedPitchAudioProcessorEditor::sliderValueChanged(Slider *slider)
     if (slider == &pitchSlider)
     {
         processor.pitchShift = pitchSlider.getValue();
+    }
+    if (slider == &volumeSlider)
+    {
+        processor.rawVolume = volumeSlider.getValue();
     }
 }
 

@@ -26,14 +26,15 @@ public:
     //==============================================================================
     void paint (Graphics&) override;
     void resized() override;
-    void sliderValueChanged (Slider *slider) override;
 
 private:
+    void sliderValueChanged (Slider* slider) override;
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     FeedPitchAudioProcessor& processor;
 
     Slider pitchSlider;
+    Slider volumeSlider;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (FeedPitchAudioProcessorEditor)
 };
